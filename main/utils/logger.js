@@ -13,39 +13,13 @@ var checkAndCreateDir = function(dir) {
 
 // 检查配置文件所需的目录是否存在，不存在时创建
 var setLoggerConfig = function(objConfig) {
-	var defaultAtt = objConfig["customDefaultAtt"];
-
-	for (var i = 0, j = objConfig.appenders.length; i < j; i++) {
-		var item = objConfig.appenders[i];
-		if (item["type"] == "console")
-			continue;
-
-		if (defaultAtt != null) {
-			for ( var att in defaultAtt) {
-				if (item[att] == null)
-					item[att] = defaultAtt[att];
-			}
-		}
-		
-		var fileName = item["filename"] ;
-		
-		if (fileName == null)
-			continue;
-		else
-			checkAndCreateDir(path.dirname(fileName));
-	}
+	var defaultAtt = objConfig.logsDir;
+	checkAndCreateDir(defaultAtt);
 };
 
-var loggerDebugTool = log4js.getLogger('Debug'); 
-var loggerErrorTool = log4js.getLogger('Error');
-var loggerInfoTool = log4js.getLogger('Info');
-var loggerWarnTool = log4js.getLogger('Warn');
-
-logger.debug = function(msg) {
-	if (msg == null)
-		msg = "";
-	loggerDebugTool.debug(msg);
-};
+var loggerErrorTool = log4js.getLogger('error');
+var loggerInfoTool = log4js.getLogger('access');
+var loggerPrintTool = log4js.getLogger('record');
 
 logger.info = function(msg) {
 	if (msg == null)
@@ -53,10 +27,10 @@ logger.info = function(msg) {
 	loggerInfoTool.info(msg);
 };
 
-logger.warn = function(msg) {
+logger.print = function(msg) {
 	if (msg == null)
 		msg = "";
-	loggerWarnTool.warn(msg);
+	loggerPrintTool.info(msg);
 };
 
 logger.error = function(msg, exp) {
@@ -67,15 +41,17 @@ logger.error = function(msg, exp) {
 	loggerErrorTool.error(msg);
 };
 
-setLoggerConfig(loggerConfig);
-log4js.configure(loggerConfig);
+log4js.configure(loggerConfig,{
+	cwd : loggerConfig.logsDir
+});
 
 // 配合express用的方法
-exports.use = function(app) {
-	app.use(log4js.connectLogger(loggerInfoTool, {
-		level : 'auto',
-		format : ':method :url'
-	}));
+exports.connectLogger = function() {
+	return log4js.connectLogger(loggerInfoTool, {
+		format : loggerConfig.logFormat
+	});
 }
 
-exports.logger = logger;
+exports.info = logger.info;
+exports.error = logger.error;
+exports.print = logger.print;
